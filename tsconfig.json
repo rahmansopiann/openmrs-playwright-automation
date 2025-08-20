@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ESNext", // Versi JS yang dihasilkan
+    "module": "CommonJS", // Sistem module
+    "moduleResolution": "node", // Resolusi module Node.js
+    "strict": true, // Strict type-checking
+    "esModuleInterop": true, // Interop import/export
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "outDir": "dist", // Hasil compile (kalau diperlukan)
+    "resolveJsonModule": true, // Bisa import JSON (fixtures)
+    "types": ["node", "playwright"] // Include types Playwright
+  },
+  "include": [
+    "tests/**/*.ts",
+    "pages/**/*.ts",
+    "locators/**/*.ts",
+    "utils/**/*.ts",
+    "config/**/*.ts"
+  ],
+  "exclude": ["node_modules", "dist", "playwright-report", "test-results"]
+}
