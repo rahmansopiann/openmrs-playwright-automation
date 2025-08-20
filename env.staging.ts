@@ -1,5 +1,5 @@
 export const stagingConfig = {
-  baseURL: 'https://staging.openmrs.org',
+  baseURL: 'https://o3.openmrs.org',
   credentials: {
     username: 'admin',
     password: 'Admin123',
