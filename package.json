@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "test": "npx playwright test",
-    "test:allure": "npx playwright test --reporter=line,allure-playwright",
+    "test:staging": "ENV=staging npx playwright test",
     "allure:generate": "allure generate ./allure-results --clean -o ./allure-report",
     "allure:open": "allure open ./allure-report",
     "lint": "eslint . --ext .js,.ts",

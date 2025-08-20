@@ -1,4 +1,4 @@
-name: Playwright Tests with Allure
+name: openmrs-playwright-automation
 
 on:
   push:
@@ -35,7 +35,7 @@ jobs:
 
       # 6. Run Playwright tests with Allure
       - name: Run Playwright tests
-        run: npm run test:allure
+        run: npm run test:staging
 
       # 7. Generate Allure report
       - name: Generate Allure report
@@ -43,14 +43,14 @@ jobs:
 
       # 8. Upload Allure results as artifact
       - name: Upload Allure results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: allure-results
           path: allure-results
 
       # 9. Upload Allure HTML report as artifact
       - name: Upload Allure HTML report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: allure-report
           path: allure-report

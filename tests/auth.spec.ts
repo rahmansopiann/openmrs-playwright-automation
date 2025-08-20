@@ -13,7 +13,7 @@ test.describe("Authentication", () => {
     await loginPage.goto();
   });
 
-  test("Login with valid credentials", async () => {
+  test("Login with valid credentials @positive @smoke", async () => {
     await loginPage.login(config.credentials.username, config.credentials.password);
     await expect(loginPage.page).toHaveURL(/home/);
   });
