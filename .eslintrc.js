@@ -1,16 +1,32 @@
-module.exports = {
-  env: {
-    browser: true,
-    es2021: true,
-    node: true,
+import tseslint from 'typescript-eslint';
+import prettierPlugin from 'eslint-plugin-prettier';
+
+export default tseslint.config(
+  {
+    ignores: [
+      'node_modules',
+      'dist',
+      'playwright-report',
+      'test-results',
+      'allure-results',
+      'allure-report'
+    ],
   },
-  extends: [
-    "eslint:recommended",
-    "plugin:prettier/recommended", // Integrasi Prettier
-  ],
-  rules: {
-    "no-unused-vars": "warn",
-    "no-console": "off",
-    "prettier/prettier": "warn",
-  },
-};
+  {
+    files: ['**/*.ts', '**/*.js'],
+    languageOptions: {
+      parser: tseslint.parser,
+      parserOptions: {
+        project: './tsconfig.json',
+      },
+    },
+    plugins: {
+      '@typescript-eslint': tseslint.plugin,
+      prettier: prettierPlugin,
+    },
+    rules: {
+      'prettier/prettier': 'error',
+      '@typescript-eslint/no-unused-vars': ['error'],
+    },
+  }
+);
