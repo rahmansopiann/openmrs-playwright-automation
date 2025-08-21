@@ -64,7 +64,7 @@ The scope of testing for this project includes the following modules and scenari
 Clone the repository and install the dependencies.
 
 ```bash
-git clone <repository_url>
+git clone https://github.com/rahmansopiann/openmrs-playwright-automation.git
 cd openmrs-playwright-automation
 npm install
 ```
