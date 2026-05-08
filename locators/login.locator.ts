@@ -2,7 +2,8 @@ export const LoginLocators = {
   loginForm: "#login-form",
   usernameInput: "#username",
   passwordInput: "#password",
+  sessionLocationSelect: "//li[@id='Registration Desk']",
   continueButton: "button[type='button']",
-  loginButton: 'button[type="submit"]',
-  errorMessage: "div.cds--inline-notification__subtitle",
+  loginButton: '#loginButton',
+  errorMessage: "#error-message",
 };

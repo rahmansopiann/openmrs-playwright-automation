@@ -1,15 +1,16 @@
 {
   "compilerOptions": {
-    "target": "ESNext", // Versi JS yang dihasilkan
-    "module": "CommonJS", // Sistem module
-    "moduleResolution": "node", // Resolusi module Node.js
-    "strict": true, // Strict type-checking
-    "esModuleInterop": true, // Interop import/export
+    "target": "ESNext",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "ignoreDeprecations": "6.0",
+    "strict": true,
+    "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
-    "outDir": "dist", // Hasil compile (kalau diperlukan)
-    "resolveJsonModule": true, // Bisa import JSON (fixtures)
-    "types": ["node", "playwright"] // Include types Playwright
+    "outDir": "dist",
+    "resolveJsonModule": true,
+    "types": ["node", "playwright/test"]
   },
   "include": [
     "tests/**/*.ts",

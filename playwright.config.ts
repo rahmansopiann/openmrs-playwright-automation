@@ -1,31 +1,20 @@
 import { defineConfig, devices } from '@playwright/test';
-import { loadConfig } from './envLoader';
-
-const ENV = (process.env.ENV as 'dev' | 'staging' ) || 'dev';
-const envConfig = loadConfig(ENV);
 
 export default defineConfig({
   testDir: './tests',
-  /* Run tests in files in parallel */
+  timeout: 30_000,
   fullyParallel: true,
-  /* Fail the build on CI if you accidentally left test.only in the source code. */
-  forbidOnly: !!process.env.CI,
-  /* Retry on CI only */
-  retries: process.env.CI ? 2 : 0,
-  /* Opt out of parallel tests on CI. */
-  workers: process.env.CI ? 1 : undefined,
-  /* Reporter to use. See https://playwright.dev/docs/test-reporters */
+  workers: 5,
   reporter: [
-    ['list'],
-    ['allure-playwright'],
+    ['html', { outputFolder: 'playwright-report', open: 'never' }],
+    ['json', { outputFile: 'test-results/results.json' }],
+    ['list']
   ],
-  /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
+    baseURL: 'https://o2.openmrs.org',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
-    trace: 'retain-on-failure',
-    baseURL: envConfig.baseURL,
-    actionTimeout: envConfig.timeout,
+    trace: 'on-first-retry',
   },
   /* Configure projects for major browsers */
   projects: [

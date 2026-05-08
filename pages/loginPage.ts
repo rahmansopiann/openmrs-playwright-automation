@@ -8,10 +8,10 @@ export class LoginPage {
     await this.page.goto("openmrs/login.htm");
   }
 
-  async login(username: string, password: string, locations: string) {
+  async login(username: string, password: string, location: string) {
     await this.page.fill(LoginLocators.usernameInput, username);
     await this.page.fill(LoginLocators.passwordInput, password);
-    await this.page.click(LoginLocators.sessionLocationSelect, locations);
+    await this.page.click(LoginLocators.sessionLocationSelect);
     await this.page.click(LoginLocators.loginButton);
   }
 

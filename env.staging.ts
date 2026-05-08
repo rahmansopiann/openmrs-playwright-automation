@@ -1,8 +1,9 @@
 export const stagingConfig = {
-  baseURL: 'https://o3.openmrs.org',
+  baseURL: 'https://o2.openmrs.org',
   credentials: {
     username: 'admin',
     password: 'Admin123',
+    location: 'Registration Desk'
   },
   timeout: 30000
 };

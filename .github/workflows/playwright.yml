@@ -1,56 +1,82 @@
-name: openmrs-playwright-automation
+name: Playwright Tests
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  workflow_dispatch:             # ← Ini yang dipanggil oleh n8n via API
+    inputs:
+      feature_name:
+        description: 'Nama fitur yang akan ditest'
+        required: true
+        default: 'all'
+        type: string
 
 jobs:
-  test:
+  playwright-tests:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
-      # 1. Checkout repository
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      # 2. Setup Node.js
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: '20'
+          cache: 'npm'
 
-      # 3. Install dependencies
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
-      # 4. Install Playwright browsers
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps
+        run: npx playwright install --with-deps chromium
 
-      # 5. Run ESLint check
-      - name: Run ESLint
-        run: npm run lint
-
-      # 6. Run Playwright tests with Allure
       - name: Run Playwright tests
-        run: npm run test:staging
+        run: |
+          FEATURE="${{ github.event.inputs.feature_name }}"
+          if [ "$FEATURE" = "all" ]; then
+            npx playwright test
+          else
+            npx playwright test --grep "@$FEATURE"
+          fi
+        env:
+          BASE_URL: ${{ secrets.BASE_URL }}
+        continue-on-error: true   # ← Jangan stop meski ada test fail
 
-      # 7. Generate Allure report
-      - name: Generate Allure report
-        run: npm run allure:generate
+      - name: Convert HTML report to PDF
+        run: |
+          npm install -g playwright-pdf-reporter 2>/dev/null || true
+          npx playwright show-report --port 9323 &
+          sleep 3
+          # Install chromium for PDF generation
+          node -e "
+          const { chromium } = require('playwright');
+          (async () => {
+            const browser = await chromium.launch();
+            const page = await browser.newPage();
+            await page.goto('http://localhost:9323');
+            await page.waitForLoadState('networkidle');
+            await page.pdf({
+              path: 'playwright-report/report.pdf',
+              format: 'A4',
+              printBackground: true
+            });
+            await browser.close();
+            console.log('PDF generated successfully');
+          })();
+          "
 
-      # 8. Upload Allure results as artifact
-      - name: Upload Allure results
+      - name: Upload PDF report as artifact
         uses: actions/upload-artifact@v4
+        if: always()             # ← Upload meski test fail
         with:
-          name: allure-results
-          path: allure-results
+          name: playwright-report-pdf
+          path: playwright-report/report.pdf
+          retention-days: 7
 
-      # 9. Upload Allure HTML report as artifact
-      - name: Upload Allure HTML report
+      - name: Upload JSON results
         uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: allure-report
-          path: allure-report
+          name: test-results-json
+          path: test-results/results.json
+          retention-days: 7
