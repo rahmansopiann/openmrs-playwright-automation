@@ -5,7 +5,7 @@ on:
     inputs:
       feature_name:
         description: 'Nama fitur yang akan ditest'
-        required: true
+        required: false
         default: 'all'
         type: string
 
