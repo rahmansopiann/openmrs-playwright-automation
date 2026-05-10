@@ -56,3 +56,21 @@ jobs:
           name: allure-report
           path: allure-report.zip
           retention-days: 7
+          
+      - name: Notify n8n with result
+        if: always()
+        run: |
+          STATUS="${{ job.status }}"
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          FEATURE="${{ github.event.client_payload.feature }}"
+          CALLBACK_URL="${{ github.event.client_payload.callback_url }}"
+          
+          curl -X POST "$CALLBACK_URL" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"status\": \"$STATUS\",
+              \"feature\": \"$FEATURE\",
+              \"run_url\": \"$RUN_URL\",
+              \"run_id\": \"${{ github.run_id }}\",
+              \"artifact_name\": \"allure-report\"
+            }"
