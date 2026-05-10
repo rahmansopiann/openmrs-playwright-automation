@@ -79,7 +79,7 @@ jobs:
           name: test-results-json
           path: test-results/results.json
           retention-days: 7
-          
+
       - name: Prepare results for n8n
         if: always()
         run: |
@@ -110,3 +110,57 @@ jobs:
           name: n8n-summary
           path: n8n-payload/summary.json   # ← file kecil, 1 level, tetap di-ZIP tapi isinya simpel
           retention-days: 3
+      - name: Send results to n8n
+        if: always()
+        run: |
+          node -e "
+            const fs   = require('fs');
+            const http = require('https');
+
+            const raw  = fs.readFileSync('test-results/results.json', 'utf8');
+            const r    = JSON.parse(raw);
+            const s    = r.stats || {};
+
+            // Kumpulkan detail test per browser
+            const details = [];
+            function collect(suites) {
+              for (const suite of (suites || [])) {
+                for (const spec of (suite.specs || [])) {
+                  for (const test of (spec.tests || [])) {
+                    const res = test.results?.[0] || {};
+                    details.push({
+                      title  : spec.title,
+                      browser: test.projectName || 'unknown',
+                      status : test.status,
+                      duration: res.duration || 0
+                    });
+                  }
+                }
+                collect(suite.suites);
+              }
+            }
+            collect(r.suites);
+
+            const payload = JSON.stringify({
+              passed   : s.expected   || 0,
+              failed   : s.unexpected || 0,
+              skipped  : s.skipped    || 0,
+              flaky    : s.flaky      || 0,
+              duration : s.duration   || 0,
+              startTime: s.startTime  || '',
+              runUrl   : 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}',
+              feature  : '${{ github.event.inputs.feature_name }}',
+              details  : details
+            });
+
+            const url = new URL('${{ secrets.N8N_WEBHOOK_URL }}');
+            const req = http.request({
+              hostname: url.hostname,
+              path    : url.pathname,
+              method  : 'POST',
+              headers : { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) }
+            }, res => console.log('n8n status:', res.statusCode));
+            req.on('error', e => console.error('Error:', e.message));
+            req.write(payload);
+            req.end();
+          "
