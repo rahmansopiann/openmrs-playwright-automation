@@ -1,8 +1,13 @@
 name: Playwright Tests via n8n Trigger
 
 on:
-  repository_dispatch:
-    types: [run-tests]
+  workflow_dispatch:             # ← Ini yang dipanggil oleh n8n via API
+    inputs:
+      feature_name:
+        description: 'Nama fitur yang akan ditest'
+        required: true
+        default: 'all'
+        type: string
 
 jobs:
   test:
