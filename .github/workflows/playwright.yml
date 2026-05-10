@@ -79,3 +79,34 @@ jobs:
           name: test-results-json
           path: test-results/results.json
           retention-days: 7
+          
+      - name: Prepare results for n8n
+        if: always()
+        run: |
+          mkdir -p n8n-payload
+          # Salin JSON results
+          cp test-results/results.json n8n-payload/results.json
+          # Buat summary.json ringkas supaya n8n tidak perlu parse besar
+          node -e "
+            const fs = require('fs');
+            const r = JSON.parse(fs.readFileSync('test-results/results.json', 'utf8'));
+            const stats = r.stats || {};
+            const summary = {
+              passed  : stats.expected   || 0,
+              failed  : stats.unexpected || 0,
+              skipped : stats.skipped    || 0,
+              flaky   : stats.flaky      || 0,
+              duration: stats.duration   || 0,
+              startTime: stats.startTime || new Date().toISOString()
+            };
+            fs.writeFileSync('n8n-payload/summary.json', JSON.stringify(summary));
+            console.log('Summary:', JSON.stringify(summary));
+          "
+
+      - name: Upload summary for n8n
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: n8n-summary
+          path: n8n-payload/summary.json   # ← file kecil, 1 level, tetap di-ZIP tapi isinya simpel
+          retention-days: 3
