@@ -28,19 +28,17 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
 
-      - name: Run Playwright tests (filtered by feature)
+      - name: Run Playwright tests
         run: |
-          FEATURE="${{ github.event.client_payload.feature }}"
-          echo "Running tests for feature: $FEATURE"
-          
-          if [ -z "$FEATURE" ] || [ "$FEATURE" = "all" ]; then
+          FEATURE="${{ github.event.inputs.feature_name }}"
+          if [ "$FEATURE" = "all" ]; then
             npx playwright test
           else
             npx playwright test --grep "@$FEATURE"
           fi
-        # env:
-        #   BASE_URL: ${{ secrets.BASE_URL }}
-        #   CI: true
+        env:
+          BASE_URL: ${{ secrets.BASE_URL }}
+        continue-on-error: true   # ← Jangan stop meski ada test fail
 
       - name: Generate Allure Report
         if: always()
@@ -81,7 +79,7 @@ jobs:
             PASSED=0; FAILED=0; SKIPPED=0; BROKEN=0; FLAKY=0; TOTAL=0; DURATION=0
           fi
 
-          FEATURE="${{ github.event.client_payload.feature }}"
+          FEATURE="${{ github.event.inputs.feature_name }}"
           RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           CALLBACK_URL="${{ github.event.client_payload.callback_url }}"
           REPORT_URL="${{ env.REPORT_URL }}"  # dari step deploy sebelumnya
