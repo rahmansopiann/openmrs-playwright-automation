@@ -20,7 +20,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
 
       - name: Install dependencies
         run: npm install
@@ -56,21 +56,52 @@ jobs:
           name: allure-report
           path: allure-report.zip
           retention-days: 7
-          
-      - name: Notify n8n with result
+
+      - name: Parse Allure summary & notify n8n
         if: always()
         run: |
-          STATUS="${{ job.status }}"
-          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          # Allure menyimpan summary di allure-report/widgets/summary.json
+          SUMMARY_FILE="allure-report/widgets/summary.json"
+
+          if [ -f "$SUMMARY_FILE" ]; then
+            PASSED=$(jq  '.statistic.passed'  "$SUMMARY_FILE")
+            FAILED=$(jq  '.statistic.failed'  "$SUMMARY_FILE")
+            SKIPPED=$(jq '.statistic.skipped' "$SUMMARY_FILE")
+            BROKEN=$(jq  '.statistic.broken'  "$SUMMARY_FILE")
+            FLAKY=$(jq   '
+              if .statistic | has("flaky")
+              then .statistic.flaky
+              else 0
+              end
+            ' "$SUMMARY_FILE")
+            TOTAL=$(jq   '.statistic.total'   "$SUMMARY_FILE")
+            DURATION=$(jq '.time.duration'    "$SUMMARY_FILE")
+          else
+            # Fallback jika summary tidak ditemukan
+            PASSED=0; FAILED=0; SKIPPED=0; BROKEN=0; FLAKY=0; TOTAL=0; DURATION=0
+          fi
+
           FEATURE="${{ github.event.client_payload.feature }}"
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           CALLBACK_URL="${{ github.event.client_payload.callback_url }}"
-          
+          REPORT_URL="${{ env.REPORT_URL }}"  # dari step deploy sebelumnya
+          STATUS="${{ job.status }}"
+
           curl -X POST "$CALLBACK_URL" \
             -H "Content-Type: application/json" \
             -d "{
-              \"status\": \"$STATUS\",
-              \"feature\": \"$FEATURE\",
-              \"run_url\": \"$RUN_URL\",
-              \"run_id\": \"${{ github.run_id }}\",
-              \"artifact_name\": \"allure-report\"
+              \"status\":      \"$STATUS\",
+              \"feature\":     \"$FEATURE\",
+              \"run_url\":     \"$RUN_URL\",
+              \"report_url\":  \"$REPORT_URL\",
+              \"run_id\":      \"${{ github.run_id }}\",
+              \"summary\": {
+                \"passed\":   $PASSED,
+                \"failed\":   $FAILED,
+                \"skipped\":  $SKIPPED,
+                \"broken\":   $BROKEN,
+                \"flaky\":    $FLAKY,
+                \"total\":    $TOTAL,
+                \"duration\": $DURATION
+              }
             }"
