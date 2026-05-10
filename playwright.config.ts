@@ -5,10 +5,13 @@ export default defineConfig({
   timeout: 30_000,
   fullyParallel: true,
   workers: 5,
-  reporter: [
-    ['html', { outputFolder: 'playwright-report', open: 'never' }],
-    ['json', { outputFile: 'test-results/results.json' }],
-    ['list']
+reporter: [
+    ['list'],
+    ['allure-playwright', {
+      detail: true,
+      outputFolder: 'allure-results',
+      suiteTitle: false,
+    }]
   ],
   use: {
     baseURL: 'https://o2.openmrs.org',

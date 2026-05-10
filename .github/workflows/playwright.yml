@@ -1,16 +1,11 @@
-name: Playwright Tests
+name: Playwright Tests via n8n Trigger
 
 on:
-  workflow_dispatch:             # ← Ini yang dipanggil oleh n8n via API
-    inputs:
-      feature_name:
-        description: 'Nama fitur yang akan ditest'
-        required: true
-        default: 'all'
-        type: string
+  repository_dispatch:
+    types: [run-tests]  # trigger dari n8n via API
 
 jobs:
-  playwright-tests:
+  test:
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -22,145 +17,57 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps
+        run: npx playwright install --with-deps chromium
 
-      - name: Run Playwright tests
+      - name: Run Playwright tests (filtered by feature)
         run: |
-          FEATURE="${{ github.event.inputs.feature_name }}"
-          if [ "$FEATURE" = "all" ]; then
+          FEATURE="${{ github.event.client_payload.feature }}"
+          echo "Running tests for feature: $FEATURE"
+          
+          if [ -z "$FEATURE" ] || [ "$FEATURE" = "all" ]; then
             npx playwright test
           else
             npx playwright test --grep "@$FEATURE"
           fi
         env:
           BASE_URL: ${{ secrets.BASE_URL }}
-        continue-on-error: true   # ← Jangan stop meski ada test fail
+          CI: true
 
-      - name: Convert HTML report to PDF
+      - name: Generate Allure Report
+        if: always()
         run: |
-          npm install -g playwright-pdf-reporter 2>/dev/null || true
-          npx playwright show-report --port 9323 &
-          sleep 3
-          # Install chromium for PDF generation
-          node -e "
-          const { chromium } = require('playwright');
-          (async () => {
-            const browser = await chromium.launch();
-            const page = await browser.newPage();
-            await page.goto('http://localhost:9323');
-            await page.waitForLoadState('networkidle');
-            await page.pdf({
-              path: 'playwright-report/report.pdf',
-              format: 'A4',
-              printBackground: true
-            });
-            await browser.close();
-            console.log('PDF generated successfully');
-          })();
-          "
+          npm run allure:generate
+          # Zip the HTML report
+          zip -r allure-report.zip allure-report/
 
-      - name: Upload PDF report as artifact
+      - name: Upload report as artifact
+        if: always()
         uses: actions/upload-artifact@v4
-        if: always()             # ← Upload meski test fail
         with:
-          name: playwright-report-pdf
-          path: playwright-report/report.pdf
+          name: allure-report
+          path: allure-report.zip
           retention-days: 7
 
-      - name: Upload JSON results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: test-results-json
-          path: test-results/results.json
-          retention-days: 7
-
-      - name: Prepare results for n8n
+      - name: Notify n8n with result
         if: always()
         run: |
-          mkdir -p n8n-payload
-          # Salin JSON results
-          cp test-results/results.json n8n-payload/results.json
-          # Buat summary.json ringkas supaya n8n tidak perlu parse besar
-          node -e "
-            const fs = require('fs');
-            const r = JSON.parse(fs.readFileSync('test-results/results.json', 'utf8'));
-            const stats = r.stats || {};
-            const summary = {
-              passed  : stats.expected   || 0,
-              failed  : stats.unexpected || 0,
-              skipped : stats.skipped    || 0,
-              flaky   : stats.flaky      || 0,
-              duration: stats.duration   || 0,
-              startTime: stats.startTime || new Date().toISOString()
-            };
-            fs.writeFileSync('n8n-payload/summary.json', JSON.stringify(summary));
-            console.log('Summary:', JSON.stringify(summary));
-          "
-
-      - name: Upload summary for n8n
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: n8n-summary
-          path: n8n-payload/summary.json   # ← file kecil, 1 level, tetap di-ZIP tapi isinya simpel
-          retention-days: 3
-      - name: Send results to n8n
-        if: always()
-        run: |
-          node -e "
-            const fs   = require('fs');
-            const http = require('https');
-
-            const raw  = fs.readFileSync('test-results/results.json', 'utf8');
-            const r    = JSON.parse(raw);
-            const s    = r.stats || {};
-
-            // Kumpulkan detail test per browser
-            const details = [];
-            function collect(suites) {
-              for (const suite of (suites || [])) {
-                for (const spec of (suite.specs || [])) {
-                  for (const test of (spec.tests || [])) {
-                    const res = test.results?.[0] || {};
-                    details.push({
-                      title  : spec.title,
-                      browser: test.projectName || 'unknown',
-                      status : test.status,
-                      duration: res.duration || 0
-                    });
-                  }
-                }
-                collect(suite.suites);
-              }
-            }
-            collect(r.suites);
-
-            const payload = JSON.stringify({
-              passed   : s.expected   || 0,
-              failed   : s.unexpected || 0,
-              skipped  : s.skipped    || 0,
-              flaky    : s.flaky      || 0,
-              duration : s.duration   || 0,
-              startTime: s.startTime  || '',
-              runUrl   : 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}',
-              feature  : '${{ github.event.inputs.feature_name }}',
-              details  : details
-            });
-
-            const url = new URL('${{ secrets.N8N_WEBHOOK_URL }}');
-            const req = http.request({
-              hostname: url.hostname,
-              path    : url.pathname,
-              method  : 'POST',
-              headers : { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) }
-            }, res => console.log('n8n status:', res.statusCode));
-            req.on('error', e => console.error('Error:', e.message));
-            req.write(payload);
-            req.end();
-          "
+          STATUS="${{ job.status }}"
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          FEATURE="${{ github.event.client_payload.feature }}"
+          CALLBACK_URL="${{ github.event.client_payload.callback_url }}"
+          
+          curl -X POST "$CALLBACK_URL" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"status\": \"$STATUS\",
+              \"feature\": \"$FEATURE\",
+              \"run_url\": \"$RUN_URL\",
+              \"run_id\": \"${{ github.run_id }}\",
+              \"artifact_name\": \"allure-report\"
+            }"
