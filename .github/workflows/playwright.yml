@@ -1,22 +1,21 @@
 name: Playwright Tests with Allure
 
 on:
-  # Manual trigger
-   workflow_dispatch:
+  workflow_dispatch:
     inputs:
       feature:
-        description: 'Feature name to test'
-        required: false
+        description: 'Feature name (checkout/login/payment/all)'
+        required: true
         default: 'all'
       telegram_chat_id:
-        description: 'Telegram Chat ID'
+        description: 'Telegram Chat ID for notification'
         required: true
 
 jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -33,21 +32,18 @@ jobs:
         run: npx playwright install --with-deps
 
       - name: Install Allure CLI
-        run: |
-          npm install -g allure-commandline
-          allure --version
+        run: npm install -g allure-commandline
 
-      - name: Set Feature Variable
+      - name: Set & Sanitize Feature Variable
         run: |
-          # Ambil dari repository_dispatch atau workflow_dispatch
-          FEATURE="${{ github.event.client_payload.feature || github.event.inputs.feature || 'all' }}"
+          FEATURE="${{ github.event.inputs.feature }}"
+          FEATURE=$(echo "$FEATURE" | tr -cd '[:alnum:]_-')
           echo "FEATURE=$FEATURE" >> $GITHUB_ENV
-          echo "Running tests for feature: $FEATURE"
+          echo "Running feature: $FEATURE"
 
       - name: Run Playwright Tests
         run: |
           mkdir -p allure-results test-results
-          
           if [ "$FEATURE" = "all" ]; then
             npx playwright test
           else
@@ -56,15 +52,13 @@ jobs:
         env:
           BASE_URL: ${{ secrets.BASE_URL }}
           CI: true
-        continue-on-error: true  # Lanjutkan meski ada test failure
+        continue-on-error: true
 
       - name: Generate Allure Report
         if: always()
-        run: |
-          allure generate allure-results --clean -o allure-report
-          echo "Allure report generated"
+        run: allure generate allure-results --clean -o allure-report
 
-      - name: Upload Allure Results (JSON)
+      - name: Upload Allure Results
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -72,7 +66,7 @@ jobs:
           path: allure-results/
           retention-days: 30
 
-      - name: Upload Allure Report (HTML)
+      - name: Upload Allure Report
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -80,67 +74,42 @@ jobs:
           path: allure-report/
           retention-days: 30
 
-      - name: Upload Test Results JSON
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results-json-${{ github.run_id }}
-          path: test-results/results.json
-          retention-days: 30
-
       - name: Debug - Check Allure Files
         if: always()
         run: |
           echo "=== FEATURE ==="
           echo "$FEATURE"
-          echo "=== allure-report/widgets/ ==="
-          ls -la allure-report/widgets/ 2>/dev/null || echo "❌ Not found"
           echo "=== summary.json ==="
           cat allure-report/widgets/summary.json 2>/dev/null || echo "❌ Not found"
         env:
           FEATURE: ${{ env.FEATURE }}
 
-      # Parse hasil dan kirim ke n8n webhook
-      - name: Parse & Send Results to n8n
+      - name: Parse Allure & Send to n8n
         if: always()
         run: |
           python3 << 'EOF'
-          import json
-          import os
-          import urllib.request
-          import urllib.error
+          import json, os, urllib.request, urllib.error
 
-          # ── Baca environment variables ──────────────────────────
-          feature         = os.environ.get("FEATURE", "all")
-          run_id          = os.environ.get("GITHUB_RUN_ID", "")
-          run_number      = os.environ.get("GITHUB_RUN_NUMBER", "")
-          repository      = os.environ.get("GITHUB_REPOSITORY", "")
-          n8n_url         = os.environ.get("N8N_WEBHOOK_RESULTS_URL", "")
+          feature          = os.environ.get("FEATURE", "all")
+          run_id           = os.environ.get("GITHUB_RUN_ID", "")
+          run_number       = os.environ.get("GITHUB_RUN_NUMBER", "")
+          repository       = os.environ.get("GITHUB_REPOSITORY", "")
+          n8n_url          = os.environ.get("N8N_WEBHOOK_RESULTS_URL", "")
           telegram_chat_id = os.environ.get("TELEGRAM_CHAT_ID", "")
 
-          # ── Parse Allure summary.json ────────────────────────────
           summary_path = "allure-report/widgets/summary.json"
-          stats = {"total": 0, "passed": 0, "failed": 0, "broken": 0, "skipped": 0}
+          stats    = {"total": 0, "passed": 0, "failed": 0, "broken": 0, "skipped": 0}
           duration = 0
 
           if os.path.exists(summary_path):
-              with open(summary_path, "r") as f:
-                  summary = json.load(f)
-              statistic = summary.get("statistic", {})
-              stats["total"]   = statistic.get("total",   0)
-              stats["passed"]  = statistic.get("passed",  0)
-              stats["failed"]  = statistic.get("failed",  0)
-              stats["broken"]  = statistic.get("broken",  0)
-              stats["skipped"] = statistic.get("skipped", 0)
-              duration = summary.get("time", {}).get("duration", 0)
-              print(f"✅ summary.json found: {stats}")
+              with open(summary_path) as f:
+                  data = json.load(f)
+              s = data.get("statistic", {})
+              stats.update({k: s.get(k, 0) for k in stats})
+              duration = data.get("time", {}).get("duration", 0)
+              print(f"✅ Parsed: {stats}")
           else:
-              print(f"⚠️  summary.json NOT found at {summary_path}")
-
-          # ── Build payload ────────────────────────────────────────
-          artifact_url = (
-              f"https://github.com/{repository}/actions/runs/{run_id}"
-          )
+              print("⚠️  summary.json not found")
 
           payload = {
               "run_id":           run_id,
@@ -148,49 +117,37 @@ jobs:
               "feature":          feature,
               "status":           "completed",
               "repository":       repository,
-              "artifact_url":     artifact_url,
+              "artifact_url":     f"https://github.com/{repository}/actions/runs/{run_id}",
               "telegram_chat_id": telegram_chat_id,
-              "statistics": {
-                  "total":    stats["total"],
-                  "passed":   stats["passed"],
-                  "failed":   stats["failed"],
-                  "broken":   stats["broken"],
-                  "skipped":  stats["skipped"],
-                  "duration": duration,
-              },
+              "statistics":       {**stats, "duration": duration},
           }
 
-          print(f"📦 Payload: {json.dumps(payload, indent=2)}")
+          print(json.dumps(payload, indent=2))
 
-          # ── Kirim ke n8n ─────────────────────────────────────────
           if not n8n_url:
-              print("❌ N8N_WEBHOOK_RESULTS_URL is empty! Check your secrets.")
+              print("❌ N8N_WEBHOOK_RESULTS_URL kosong!")
               exit(1)
 
-          body = json.dumps(payload).encode("utf-8")
-          req  = urllib.request.Request(
+          req = urllib.request.Request(
               n8n_url,
-              data=body,
+              data=json.dumps(payload).encode(),
               headers={"Content-Type": "application/json"},
               method="POST",
           )
-
           try:
-              with urllib.request.urlopen(req, timeout=30) as resp:
-                  print(f"✅ n8n response: {resp.status} {resp.reason}")
+              with urllib.request.urlopen(req, timeout=30) as r:
+                  print(f"✅ Sent to n8n: {r.status}")
           except urllib.error.HTTPError as e:
-              print(f"❌ HTTP Error: {e.code} {e.reason}")
-              print(e.read().decode())
+              print(f"❌ HTTP {e.code}: {e.read().decode()}")
               exit(1)
           except urllib.error.URLError as e:
               print(f"❌ URL Error: {e.reason}")
               exit(1)
-
           EOF
         env:
-          FEATURE:                  ${{ env.FEATURE }}
-          GITHUB_RUN_ID:            ${{ github.run_id }}
-          GITHUB_RUN_NUMBER:        ${{ github.run_number }}
-          GITHUB_REPOSITORY:        ${{ github.repository }}
-          N8N_WEBHOOK_RESULTS_URL:  ${{ secrets.N8N_WEBHOOK_RESULTS_URL }}
-          TELEGRAM_CHAT_ID:         ${{ github.event.client_payload.telegram_chat_id || github.event.inputs.telegram_chat_id || '' }}
+          FEATURE:                 ${{ env.FEATURE }}
+          GITHUB_RUN_ID:           ${{ github.run_id }}
+          GITHUB_RUN_NUMBER:       ${{ github.run_number }}
+          GITHUB_REPOSITORY:       ${{ github.repository }}
+          N8N_WEBHOOK_RESULTS_URL: ${{ secrets.N8N_WEBHOOK_RESULTS_URL }}
+          TELEGRAM_CHAT_ID:        ${{ github.event.inputs.telegram_chat_id }}
