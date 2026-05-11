@@ -11,7 +11,6 @@ on:
       telegram_chat_id:
         description: 'Telegram Chat ID for notification'
         required: true
-        type: string
       requested_by:
         description: 'Name of the person requesting the test run'
         required: false
