@@ -1,20 +1,16 @@
 name: Playwright Tests with Allure
 
 on:
-  # Trigger via API (dari n8n)
-  repository_dispatch:
-    types: [run-playwright-tests]
-  
   # Manual trigger
-  workflow_dispatch:
+   workflow_dispatch:
     inputs:
       feature:
-        description: 'Feature name to test (e.g: checkout, login, payment)'
+        description: 'Feature name to test'
         required: true
         default: 'all'
       telegram_chat_id:
-        description: 'Telegram Chat ID for notification'
-        required: false
+        description: 'Telegram Chat ID'
+        required: true
 
 jobs:
   test:
