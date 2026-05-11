@@ -6,7 +6,7 @@ on:
     inputs:
       feature:
         description: 'Feature name to test'
-        required: true
+        required: false
         default: 'all'
       telegram_chat_id:
         description: 'Telegram Chat ID'
