@@ -80,25 +80,6 @@ jobs:
           path: allure-report/
           retention-days: 30
 
-  deploy-allure:
-    needs: test
-    runs-on: ubuntu-latest
-    if: always()
-    
-    steps:
-      - name: Download Allure Report
-        uses: actions/download-artifact@v4
-        with:
-          name: allure-report-${{ github.run_id }}
-          path: allure-report
-
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./allure-report
-          destination_dir: reports/${{ github.run_id }}
-
       - name: Debug - Check Allure Files
         if: always()
         run: |
@@ -157,7 +138,7 @@ jobs:
           req = urllib.request.Request(
               n8n_url,
               data=json.dumps(payload).encode(),
-              headers={"Content-Type": "application/json",
+              headers={"Content-Type": "application/json"},
               method="POST",
           )
           try:
@@ -175,5 +156,26 @@ jobs:
           GITHUB_RUN_ID:           ${{ github.run_id }}
           GITHUB_RUN_NUMBER:       ${{ github.run_number }}
           GITHUB_REPOSITORY:       ${{ github.repository }}
-          N8N_WEBHOOK_RESULTS_URL: ${{ secrets.N8N_WEBHOOK_RESULTS_URL }} 
+          N8N_WEBHOOK_RESULTS_URL: ${{ secrets.N8N_WEBHOOK_RESULTS_URL }}
           TELEGRAM_CHAT_ID:        ${{ github.event.inputs.telegram_chat_id }}
+
+  deploy-allure:
+    needs: test
+    runs-on: ubuntu-latest
+    if: always()
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download Allure Report
+        uses: actions/download-artifact@v4
+        with:
+          name: allure-report-${{ github.run_id }}
+          path: allure-report
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./allure-report
+          destination_dir: reports/${{ github.run_id }}
