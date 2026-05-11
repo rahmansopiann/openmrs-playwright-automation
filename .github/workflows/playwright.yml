@@ -7,9 +7,15 @@ on:
         description: 'Feature name (checkout/login/payment/all)'
         required: true
         default: 'all'
+        type: string
       telegram_chat_id:
         description: 'Telegram Chat ID for notification'
         required: true
+        type: string
+      requested_by:
+        description: 'Name of the person requesting the test run'
+        required: false
+        type: string
 
 jobs:
   test:
@@ -96,6 +102,7 @@ jobs:
           repository       = os.environ.get("GITHUB_REPOSITORY", "")
           n8n_url          = os.environ.get("N8N_WEBHOOK_RESULTS_URL", "")
           telegram_chat_id = os.environ.get("TELEGRAM_CHAT_ID", "")
+          requested_by     = os.environ.get("REQUESTED_BY", "")
 
           summary_path = "allure-report/widgets/summary.json"
           stats    = {"total": 0, "passed": 0, "failed": 0, "broken": 0, "skipped": 0}
