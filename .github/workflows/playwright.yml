@@ -1,20 +1,28 @@
-name: Playwright Tests via n8n Trigger
+name: Playwright Tests with Allure
 
 on:
-  workflow_dispatch:             # ← Ini yang dipanggil oleh n8n via API
+  # Trigger via API (dari n8n)
+  repository_dispatch:
+    types: [run-playwright-tests]
+  
+  # Manual trigger
+  workflow_dispatch:
     inputs:
-      feature_name:
-        description: 'Nama fitur yang akan ditest'
+      feature:
+        description: 'Feature name to test (e.g: checkout, login, payment)'
         required: true
         default: 'all'
-        type: string
+      telegram_chat_id:
+        description: 'Telegram Chat ID for notification'
+        required: false
 
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
+    
     steps:
-      - name: Checkout code
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
       - name: Setup Node.js
@@ -22,15 +30,28 @@ jobs:
         with:
           node-version: '24'
 
-      - name: Install dependencies
+      - name: Install Dependencies
         run: npm install
 
-      - name: Install Playwright browsers
+      - name: Install Playwright Browsers
         run: npx playwright install --with-deps
 
-      - name: Run Playwright tests
+      - name: Install Allure CLI
         run: |
-          FEATURE="${{ github.event.inputs.feature_name }}"
+          npm install -g allure-commandline
+          allure --version
+
+      - name: Set Feature Variable
+        run: |
+          # Ambil dari repository_dispatch atau workflow_dispatch
+          FEATURE="${{ github.event.client_payload.feature || github.event.inputs.feature || 'all' }}"
+          echo "FEATURE=$FEATURE" >> $GITHUB_ENV
+          echo "Running tests for feature: $FEATURE"
+
+      - name: Run Playwright Tests
+        run: |
+          mkdir -p allure-results test-results
+          
           if [ "$FEATURE" = "all" ]; then
             npx playwright test
           else
@@ -38,19 +59,74 @@ jobs:
           fi
         env:
           BASE_URL: ${{ secrets.BASE_URL }}
-        continue-on-error: true   # ← Jangan stop meski ada test fail
+          CI: true
+        continue-on-error: true  # Lanjutkan meski ada test failure
 
       - name: Generate Allure Report
         if: always()
         run: |
-          npm run allure:generate
-          # Zip the HTML report
-          zip -r allure-report.zip allure-report/
+          allure generate allure-results --clean -o allure-report
+          echo "Allure report generated"
 
-      - name: Upload report as artifact
+      - name: Upload Allure Results (JSON)
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: allure-report
-          path: allure-report.zip
-          retention-days: 7
+          name: allure-results-${{ github.run_id }}
+          path: allure-results/
+          retention-days: 30
+
+      - name: Upload Allure Report (HTML)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report-${{ github.run_id }}
+          path: allure-report/
+          retention-days: 30
+
+      - name: Upload Test Results JSON
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-json-${{ github.run_id }}
+          path: test-results/results.json
+          retention-days: 30
+
+      # Parse hasil dan kirim ke n8n webhook
+      - name: Parse & Send Results to n8n
+        if: always()
+        run: |
+          # Parse allure summary
+          SUMMARY_FILE="allure-report/widgets/summary.json"
+          
+          if [ -f "$SUMMARY_FILE" ]; then
+            TOTAL=$(cat $SUMMARY_FILE | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['statistic']['total'])")
+            PASSED=$(cat $SUMMARY_FILE | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['statistic']['passed'])")
+            FAILED=$(cat $SUMMARY_FILE | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['statistic']['failed'])")
+            BROKEN=$(cat $SUMMARY_FILE | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['statistic']['broken'])")
+            SKIPPED=$(cat $SUMMARY_FILE | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['statistic']['skipped'])")
+            DURATION=$(cat $SUMMARY_FILE | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['time']['duration'])")
+          else
+            TOTAL=0; PASSED=0; FAILED=0; BROKEN=0; SKIPPED=0; DURATION=0
+          fi
+
+          # Kirim ke n8n webhook
+          curl -X POST "${{ secrets.N8N_WEBHOOK_RESULTS_URL }}" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"run_id\": \"${{ github.run_id }}\",
+              \"feature\": \"$FEATURE\",
+              \"status\": \"completed\",
+              \"statistics\": {
+                \"total\": $TOTAL,
+                \"passed\": $PASSED,
+                \"failed\": $FAILED,
+                \"broken\": $BROKEN,
+                \"skipped\": $SKIPPED,
+                \"duration\": $DURATION
+              },
+              \"artifact_url\": \"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\",
+              \"telegram_chat_id\": \"${{ github.event.client_payload.telegram_chat_id || github.event.inputs.telegram_chat_id }}\",
+              \"repository\": \"${{ github.repository }}\",
+              \"run_number\": \"${{ github.run_number }}\"
+            }"
