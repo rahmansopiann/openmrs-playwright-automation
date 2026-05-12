@@ -26,6 +26,9 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Record Job Start Time
+        run: echo "JOB_STARTED_AT=$(date -u +'%Y-%m-%dT%H:%M:%S')" >> $GITHUB_ENV
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -90,11 +93,15 @@ jobs:
         env:
           FEATURE: ${{ env.FEATURE }}
 
+      - name: Record Job End Time
+        if: always()
+        run: echo "JOB_FINISHED_AT=$(date -u +'%Y-%m-%dT%H:%M:%S')" >> $GITHUB_ENV
+        
       - name: Parse Allure & Send to n8n
         if: always()
         run: |
           python3 << 'EOF'
-          import json, os, urllib.request, urllib.error
+          import json, os, urllib.request, urllib.error, time
 
           feature          = os.environ.get("FEATURE", "all")
           run_id           = os.environ.get("GITHUB_RUN_ID", "")
@@ -102,31 +109,82 @@ jobs:
           repository       = os.environ.get("GITHUB_REPOSITORY", "")
           n8n_url          = os.environ.get("N8N_WEBHOOK_RESULTS_URL", "")
           telegram_chat_id = os.environ.get("TELEGRAM_CHAT_ID", "")
-          requested_by     = os.environ.get("REQUESTED_BY", "")
+          
+          # Ambil waktu start & end dari env
+          job_started_at   = os.environ.get("JOB_STARTED_AT", "")
+          job_finished_at  = os.environ.get("JOB_FINISHED_AT", "")
 
+          # ── Parse Allure summary ──────────────────────────
           summary_path = "allure-report/widgets/summary.json"
           stats    = {"total": 0, "passed": 0, "failed": 0, "broken": 0, "skipped": 0}
-          duration = 0
+          allure_duration_ms = 0
 
           if os.path.exists(summary_path):
               with open(summary_path) as f:
                   data = json.load(f)
               s = data.get("statistic", {})
               stats.update({k: s.get(k, 0) for k in stats})
-              duration = data.get("time", {}).get("duration", 0)
-              print(f"✅ Parsed: {stats}")
+              
+              # Ambil start & stop time dari Allure jika ada
+              allure_time    = data.get("time", {})
+              allure_start   = allure_time.get("start", 0)    # epoch ms
+              allure_stop    = allure_time.get("stop", 0)     # epoch ms
+              allure_duration_ms = allure_time.get("duration", 0)
+
+              print(f"✅ Allure stats: {stats}")
+              print(f"⏱️  Allure start:    {allure_start}")
+              print(f"⏱️  Allure stop:     {allure_stop}")
+              print(f"⏱️  Allure duration: {allure_duration_ms}ms")
           else:
               print("⚠️  summary.json not found")
 
+          # ── Hitung duration dari GitHub Actions ──────────
+          # Gunakan waktu yang disimpan di env variable
+          ga_duration_ms = 0
+          if job_started_at and job_finished_at:
+              from datetime import datetime, timezone
+              fmt = "%Y-%m-%dT%H:%M:%S"
+              try:
+                  start_dt = datetime.strptime(job_started_at,  fmt).replace(tzinfo=timezone.utc)
+                  end_dt   = datetime.strptime(job_finished_at, fmt).replace(tzinfo=timezone.utc)
+                  ga_duration_ms = int((end_dt - start_dt).total_seconds() * 1000)
+                  print(f"⏱️  GA duration: {ga_duration_ms}ms")
+              except Exception as e:
+                  print(f"⚠️  Could not parse GA time: {e}")
+
+          # ── Pilih duration yang paling akurat ────────────
+          # Prioritas: GA duration > Allure start-stop > Allure duration
+          if ga_duration_ms > 0:
+              final_duration_ms = ga_duration_ms
+              duration_source   = "GitHub Actions"
+          elif allure_start > 0 and allure_stop > 0:
+              final_duration_ms = allure_stop - allure_start
+              duration_source   = "Allure start-stop"
+          else:
+              final_duration_ms = allure_duration_ms
+              duration_source   = "Allure duration field"
+
+          print(f"✅ Using duration from: {duration_source} = {final_duration_ms}ms")
+
+          # ── Build payload ─────────────────────────────────
+          gh_username, gh_repo = repository.split('/')
+          allure_url   = f"https://{gh_username}.github.io/{gh_repo}/reports/{run_id}/"
+          artifact_url = f"https://github.com/{repository}/actions/runs/{run_id}"
+
           payload = {
-              "run_id":           run_id,
-              "run_number":       run_number,
-              "feature":          feature,
-              "status":           "completed",
-              "repository":       repository,
-              "artifact_url":     f"https://github.com/{repository}/actions/runs/{run_id}",
-              "telegram_chat_id": telegram_chat_id,
-              "statistics":       {**stats, "duration": duration},
+              "run_id":            run_id,
+              "run_number":        run_number,
+              "feature":           feature,
+              "status":            "completed",
+              "repository":        repository,
+              "artifact_url":      artifact_url,
+              "allure_report_url": allure_url,
+              "telegram_chat_id":  telegram_chat_id,
+              "statistics": {
+                  **stats,
+                  "duration":        final_duration_ms,
+                  "duration_source": duration_source,
+              },
           }
 
           print(json.dumps(payload, indent=2))
@@ -138,7 +196,11 @@ jobs:
           req = urllib.request.Request(
               n8n_url,
               data=json.dumps(payload).encode(),
-              headers={"Content-Type": "application/json"},
+              headers={
+                  "Content-Type": "application/json",
+                  "Accept":       "application/json",
+                  "User-Agent":   "GitHubActions/1.0",
+              },
               method="POST",
           )
           try:
@@ -157,7 +219,9 @@ jobs:
           GITHUB_RUN_NUMBER:       ${{ github.run_number }}
           GITHUB_REPOSITORY:       ${{ github.repository }}
           N8N_WEBHOOK_RESULTS_URL: ${{ secrets.N8N_WEBHOOK_RESULTS_URL }}
-          TELEGRAM_CHAT_ID:        ${{ github.event.inputs.telegram_chat_id }}
+          TELEGRAM_CHAT_ID:        ${{ secrets.TELEGRAM_CHAT_ID }}
+          JOB_STARTED_AT:          ${{ env.JOB_STARTED_AT }}
+          JOB_FINISHED_AT:         ${{ env.JOB_FINISHED_AT }}
 
   deploy-allure:
     needs: test
