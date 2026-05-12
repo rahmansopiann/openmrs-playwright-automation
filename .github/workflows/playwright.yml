@@ -4,16 +4,16 @@ on:
   workflow_dispatch:
     inputs:
       feature:
-        description: 'Feature name (checkout/login/payment/all)'
+        description: "Feature name (checkout/login/payment/all)"
         required: true
-        default: 'all'
+        default: "all"
         type: string
       telegram_chat_id:
-        description: 'Telegram Chat ID for notification'
+        description: "Telegram Chat ID for notification"
         required: true
         type: string
       requested_by:
-        description: 'Name of the person requesting the test run'
+        description: "Name of the person requesting the test run"
         required: false
         type: string
 
@@ -29,7 +29,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: "24"
 
       - name: Install Dependencies
         run: npm install
@@ -152,12 +152,12 @@ jobs:
               exit(1)
           EOF
         env:
-          FEATURE:                 ${{ env.FEATURE }}
-          GITHUB_RUN_ID:           ${{ github.run_id }}
-          GITHUB_RUN_NUMBER:       ${{ github.run_number }}
-          GITHUB_REPOSITORY:       ${{ github.repository }}
+          FEATURE: ${{ env.FEATURE }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_NUMBER: ${{ github.run_number }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
           N8N_WEBHOOK_RESULTS_URL: ${{ secrets.N8N_WEBHOOK_RESULTS_URL }}
-          TELEGRAM_CHAT_ID:        ${{ github.event.inputs.telegram_chat_id }}
+          TELEGRAM_CHAT_ID: ${{ github.event.inputs.telegram_chat_id }}
 
   deploy-allure:
     needs: test

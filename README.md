@@ -32,22 +32,26 @@ This project is a test automation framework for the OpenMRS application, built u
 The scope of testing for this project includes the following modules and scenarios:
 
 ### Authentication Module
+
 - Test login with valid credentials
 - Test login with invalid credentials (negative case)
 - Test login with empty input
 
 ### Patient Management
+
 - Test create new patient
 - Test search patient
 - Test update patient details
 - Test delete patient
 
 ### Appointment Scheduling
+
 - Test create appointment
 - Test update appointment
 - Test cancel appointment
 
 ### Form Validation
+
 - Test required field validation
 - Test invalid input (date, numeric field)
 - Test successful form submission
@@ -56,8 +60,8 @@ The scope of testing for this project includes the following modules and scenari
 
 ### 1. Prerequisites
 
--   Node.js installed
--   npm or yarn
+- Node.js installed
+- npm or yarn
 
 ### 2. Installation
 
@@ -73,29 +77,31 @@ npm install
 
 You can run the tests against different environments.
 
--   Run tests on the **development** environment:
-    ```bash
-    npm test
-    ```
+- Run tests on the **development** environment:
 
--   Run tests on the **staging** environment:
-    ```bash
-    npm run test:staging
-    ```
+  ```bash
+  npm test
+  ```
+
+- Run tests on the **staging** environment:
+  ```bash
+  npm run test:staging
+  ```
 
 ### 4. Viewing Reports
 
 This project uses Allure to generate test reports.
 
--   Generate the Allure report:
-    ```bash
-    npm run allure:generate
-    ```
+- Generate the Allure report:
 
--   Open the generated report in your browser:
-    ```bash
-    npm run allure:open
-    ```
+  ```bash
+  npm run allure:generate
+  ```
+
+- Open the generated report in your browser:
+  ```bash
+  npm run allure:open
+  ```
 
 ## Sample Report
 
@@ -103,4 +109,4 @@ Test reports are generated using Allure. The report provides a detailed overview
 
 ## Author
 
--   Rahman Sopian
+- Rahman Sopian
