@@ -14,4 +14,6 @@ export const PatientLocators = {
   deletePatientLink: "a#org\\.openmrs\\.module\\.coreapps\\.deletePatient",
   deleteReasonInput: "#delete-reason",
   confirmDeleteButton: "div#delete-patient-creation-dialog button.confirm",
+  fieldError: "span.field-error",
+  dateRequiredField: "#demographics-birthdate",
 };

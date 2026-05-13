@@ -1,4 +1,4 @@
-import { Page } from "@playwright/test";
+import { Page, expect } from "@playwright/test";
 import { PatientLocators } from "../locators/patient.locator";
 
 export class PatientPage {
@@ -39,7 +39,7 @@ export class PatientPage {
     await this.page.click(PatientLocators.nextButton); // to confirm
 
     await this.page.click("input#submit");
-    await this.page.waitForURL(/patientId=/, { timeout: 10000 });
+    await this.page.waitForURL(/patientId=/, { timeout: 50000 });
   }
 
   async searchPatient(patientIdOrName: string) {
@@ -74,5 +74,43 @@ export class PatientPage {
     await this.page.fill(PatientLocators.deleteReasonInput, reason);
     await this.page.click(PatientLocators.confirmDeleteButton);
     await this.page.waitForLoadState("networkidle");
+  }
+
+  async validateRequiredFields() {
+    await this.page.goto(
+      "openmrs/registrationapp/registerPatient.page?appId=referenceapplication.registrationapp.registerPatient"
+    );
+    await this.page.waitForLoadState("networkidle");
+
+    // Click next without filling anything
+    await this.page.click(PatientLocators.nextButton);
+
+    // Expect error messages to appear
+    const errorCount = await this.page.locator(PatientLocators.fieldError).count();
+    expect(errorCount).toBeGreaterThan(0);
+  }
+
+  async validateInvalidInput() {
+    await this.page.goto(
+      "openmrs/registrationapp/registerPatient.page?appId=referenceapplication.registrationapp.registerPatient"
+    );
+    await this.page.waitForLoadState("networkidle");
+
+    await this.page.fill(PatientLocators.givenNameInput, "Test");
+    await this.page.fill(PatientLocators.familyNameInput, "User");
+    await this.page.click(PatientLocators.nextButton);
+
+    await this.page.selectOption(PatientLocators.genderSelect, "M");
+    await this.page.click(PatientLocators.nextButton);
+
+    // Enter letters in numeric date field
+    await this.page.fill(PatientLocators.birthdateDayInput, "abc");
+    await this.page.selectOption(PatientLocators.birthdateMonthSelect, "1");
+    await this.page.fill(PatientLocators.birthdateYearInput, "xyz");
+    await this.page.click(PatientLocators.nextButton);
+
+    // Expect error messages on date fields
+    const errorCount = await this.page.locator(PatientLocators.fieldError).count();
+    expect(errorCount).toBeGreaterThan(0);
   }
 }

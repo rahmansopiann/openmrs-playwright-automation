@@ -23,7 +23,7 @@ test.describe("Patient Management", () => {
     await page.waitForLoadState("networkidle");
   });
 
-  test("Test create new patient @patient", async ({ page }) => {
+  test("Test create new patient @positive @patient", async ({ page }) => {
     const uniqueName = "TestUser" + Date.now();
     await patientPage.registerPatient(
       uniqueName,
@@ -39,13 +39,13 @@ test.describe("Patient Management", () => {
     await expect(page).toHaveURL(/patientId=/);
   });
 
-  test("Test search patient @patient", async ({ page }) => {
+  test("Test search patient @positive @patient", async ({ page }) => {
     // We assume 100JPV exists as discovered in exploratory scripts
     await patientPage.searchPatient("100JPV");
     await expect(page).toHaveURL(/patientId=/);
   });
 
-  test("Test update patient details @patient", async ({ page }) => {
+  test("Test update patient details @positive @patient", async ({ page }) => {
     // First register a new patient to update
     const uniqueName = "UpdateUser" + Date.now();
     await patientPage.registerPatient(
@@ -71,7 +71,7 @@ test.describe("Patient Management", () => {
     expect(content).toContain(newName);
   });
 
-  test("Test delete patient @patient", async ({ page }) => {
+  test("Test delete patient @positive @patient", async ({ page }) => {
     // First register a new patient to delete
     const uniqueName = "DeleteUser" + Date.now();
     await patientPage.registerPatient(
@@ -92,6 +92,14 @@ test.describe("Patient Management", () => {
     await page.waitForTimeout(3000);
     const currentUrl = await page.url();
     expect(currentUrl).not.toContain("patientId="); // We shouldn't be on the patient dashboard anymore
+  });
+
+  test("Test required field validation @negative @patient", async () => {
+    await patientPage.validateRequiredFields();
+  });
+
+  test("Test invalid input (date, numeric field) @negative @patient", async () => {
+    await patientPage.validateInvalidInput();
   });
 
   test.afterEach(async ({ page }) => {
