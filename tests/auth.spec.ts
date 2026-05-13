@@ -14,7 +14,11 @@ test.describe("Authentication", () => {
   });
 
   test("OMRS-1 Login with valid credentials @positive @smoke @login", async () => {
-    await loginPage.login(config.credentials.username, config.credentials.password, config.credentials.location);
+    await loginPage.login(
+      config.credentials.username,
+      config.credentials.password,
+      config.credentials.location
+    );
     await expect(loginPage.page).toHaveURL(/home.page/);
   });
 

@@ -4,6 +4,6 @@ export const LoginLocators = {
   passwordInput: "#password",
   sessionLocationSelect: "//li[@id='Registration Desk']",
   continueButton: "button[type='button']",
-  loginButton: '#loginButton',
+  loginButton: "#loginButton",
   errorMessage: "#error-message",
 };
