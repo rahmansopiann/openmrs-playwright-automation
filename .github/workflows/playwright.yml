@@ -9,9 +9,8 @@ on:
         default: "all"
         type: string
       telegram_chat_id:
-        description: 'Telegram Chat ID (kosongkan jika pakai secret)'
-        required: false        # ✅ FIX 1
-        default: '0'
+        description: "Telegram Chat ID for notification"
+        required: true
         type: string
       requested_by:
         description: "Name of the person requesting the test run"
@@ -26,9 +25,6 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-
-      - name: Record Job Start Time
-        run: echo "JOB_STARTED_AT=$(date -u +'%Y-%m-%dT%H:%M:%S')" >> $GITHUB_ENV
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -50,15 +46,6 @@ jobs:
           FEATURE=$(echo "$FEATURE" | tr -cd '[:alnum:]_-')
           echo "FEATURE=$FEATURE" >> $GITHUB_ENV
           echo "Running feature: $FEATURE"
-
-      - name: Set Telegram Chat ID
-        run: |
-          CHAT_ID="${{ github.event.inputs.telegram_chat_id }}"
-          if [ -z "$CHAT_ID" ] || [ "$CHAT_ID" = "0" ]; then
-            CHAT_ID="${{ secrets.TELEGRAM_CHAT_ID }}"
-          fi
-          echo "TELEGRAM_CHAT_ID=$CHAT_ID" >> $GITHUB_ENV
-          echo "Chat ID set: $CHAT_ID"
 
       - name: Run Playwright Tests
         run: |
@@ -103,10 +90,6 @@ jobs:
         env:
           FEATURE: ${{ env.FEATURE }}
 
-      - name: Record Job End Time
-        if: always()
-        run: echo "JOB_FINISHED_AT=$(date -u +'%Y-%m-%dT%H:%M:%S')" >> $GITHUB_ENV
-
       - name: Parse Allure & Send to n8n
         if: always()
         run: |
@@ -119,68 +102,31 @@ jobs:
           repository       = os.environ.get("GITHUB_REPOSITORY", "")
           n8n_url          = os.environ.get("N8N_WEBHOOK_RESULTS_URL", "")
           telegram_chat_id = os.environ.get("TELEGRAM_CHAT_ID", "")
-          job_started_at   = os.environ.get("JOB_STARTED_AT", "")
-          job_finished_at  = os.environ.get("JOB_FINISHED_AT", "")
+          requested_by     = os.environ.get("REQUESTED_BY", "")
 
           summary_path = "allure-report/widgets/summary.json"
-          stats = {"total": 0, "passed": 0, "failed": 0, "broken": 0, "skipped": 0}
-          allure_duration_ms = 0
+          stats    = {"total": 0, "passed": 0, "failed": 0, "broken": 0, "skipped": 0}
+          duration = 0
 
           if os.path.exists(summary_path):
               with open(summary_path) as f:
                   data = json.load(f)
               s = data.get("statistic", {})
               stats.update({k: s.get(k, 0) for k in stats})
-              allure_time        = data.get("time", {})
-              allure_start       = allure_time.get("start", 0)
-              allure_stop        = allure_time.get("stop", 0)
-              allure_duration_ms = allure_time.get("duration", 0)
-              print(f"✅ Allure stats: {stats}")
+              duration = data.get("time", {}).get("duration", 0)
+              print(f"✅ Parsed: {stats}")
           else:
               print("⚠️  summary.json not found")
 
-          ga_duration_ms = 0
-          if job_started_at and job_finished_at:
-              from datetime import datetime, timezone
-              fmt = "%Y-%m-%dT%H:%M:%S"
-              try:
-                  start_dt = datetime.strptime(job_started_at, fmt).replace(tzinfo=timezone.utc)
-                  end_dt   = datetime.strptime(job_finished_at, fmt).replace(tzinfo=timezone.utc)
-                  ga_duration_ms = int((end_dt - start_dt).total_seconds() * 1000)
-                  print(f"⏱️  GA duration: {ga_duration_ms}ms")
-              except Exception as e:
-                  print(f"⚠️  Could not parse GA time: {e}")
-
-          if ga_duration_ms > 0:
-              final_duration_ms = ga_duration_ms
-              duration_source   = "GitHub Actions"
-          elif allure_start > 0 and allure_stop > 0:
-              final_duration_ms = allure_stop - allure_start
-              duration_source   = "Allure start-stop"
-          else:
-              final_duration_ms = allure_duration_ms
-              duration_source   = "Allure duration field"
-
-          print(f"✅ Duration source: {duration_source} = {final_duration_ms}ms")
-
-          gh_username, gh_repo = repository.split('/')
-          allure_url   = f"https://{gh_username}.github.io/{gh_repo}/reports/{run_id}/"
-          artifact_url = f"https://github.com/{repository}/actions/runs/{run_id}"
-
           payload = {
-              "run_id":            run_id,
-              "run_number":        run_number,
-              "feature":           feature,
-              "status":            "completed",
-              "repository":        repository,
-              "artifact_url":      artifact_url,
-              "allure_report_url": allure_url,
-              "telegram_chat_id":  telegram_chat_id,
-              "statistics": {
-                  **stats,
-                  "duration":        final_duration_ms,
-                  "duration_source": duration_source,
-              },
+              "run_id":           run_id,
+              "run_number":       run_number,
+              "feature":          feature,
+              "status":           "completed",
+              "repository":       repository,
+              "artifact_url":     f"https://github.com/{repository}/actions/runs/{run_id}",
+              "telegram_chat_id": telegram_chat_id,
+              "statistics":       {**stats, "duration": duration},
           }
 
           print(json.dumps(payload, indent=2))
@@ -192,11 +138,7 @@ jobs:
           req = urllib.request.Request(
               n8n_url,
               data=json.dumps(payload).encode(),
-              headers={
-                  "Content-Type": "application/json",
-                  "Accept":       "application/json",
-                  "User-Agent":   "GitHubActions/1.0",
-              },
+              headers={"Content-Type": "application/json"},
               method="POST",
           )
           try:
@@ -215,9 +157,7 @@ jobs:
           GITHUB_RUN_NUMBER: ${{ github.run_number }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           N8N_WEBHOOK_RESULTS_URL: ${{ secrets.N8N_WEBHOOK_RESULTS_URL }}
-          TELEGRAM_CHAT_ID:        ${{ env.TELEGRAM_CHAT_ID }}   # ✅ FIX 2
-          JOB_STARTED_AT:          ${{ env.JOB_STARTED_AT }}
-          JOB_FINISHED_AT:         ${{ env.JOB_FINISHED_AT }}
+          TELEGRAM_CHAT_ID: ${{ github.event.inputs.telegram_chat_id }}
 
   deploy-allure:
     needs: test
@@ -239,43 +179,3 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./allure-report
           destination_dir: reports/${{ github.run_id }}
-
-      - name: Notify n8n Allure Deploy Done   # ✅ FIX 3
-        if: always()
-        run: |
-          python3 << 'EOF'
-          import json, os, urllib.request, urllib.error
-
-          repository = os.environ.get("GITHUB_REPOSITORY", "")
-          run_id     = os.environ.get("GITHUB_RUN_ID", "")
-          n8n_url    = os.environ.get("N8N_WEBHOOK_RESULTS_URL", "")
-
-          gh_username, gh_repo = repository.split('/')
-          allure_url = f"https://{gh_username}.github.io/{gh_repo}/reports/{run_id}/"
-
-          payload = {
-            "event":      "allure_deployed",
-            "run_id":     run_id,
-            "allure_url": allure_url,
-          }
-
-          if not n8n_url:
-            print("❌ N8N_WEBHOOK_RESULTS_URL kosong!")
-            exit(0)  # jangan fail workflow
-
-          req = urllib.request.Request(
-            n8n_url,
-            data=json.dumps(payload).encode(),
-            headers={"Content-Type": "application/json"},
-            method="POST",
-          )
-          try:
-            with urllib.request.urlopen(req, timeout=30) as r:
-              print(f"✅ Notified n8n: {r.status}")
-          except Exception as e:
-            print(f"⚠️ Notify failed (non-critical): {e}")
-          EOF
-        env:
-          GITHUB_REPOSITORY:       ${{ github.repository }}
-          GITHUB_RUN_ID:           ${{ github.run_id }}
-          N8N_WEBHOOK_RESULTS_URL: ${{ secrets.N8N_WEBHOOK_RESULTS_URL }}
