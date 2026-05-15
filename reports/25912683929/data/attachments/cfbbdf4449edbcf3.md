@@ -1,0 +1,146 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: patient.spec.ts >> Patient Management >> Test delete patient @positive @patient
+- Location: tests/patient.spec.ts:74:7
+
+# Error details
+
+```
+Test timeout of 60000ms exceeded.
+```
+
+```
+Error: page.waitForSelector: Target page, context or browser has been closed
+Call log:
+  - waiting for locator('input[name=\'givenName\']') to be visible
+
+```
+
+# Test source
+
+```ts
+  1   | import { Page, expect } from "@playwright/test";
+  2   | import { PatientLocators } from "../locators/patient.locator";
+  3   | 
+  4   | export class PatientPage {
+  5   |   constructor(public page: Page) {}
+  6   | 
+  7   |   async registerPatient(
+  8   |     givenName: string,
+  9   |     familyName: string,
+  10  |     gender: string,
+  11  |     day: string,
+  12  |     month: string,
+  13  |     year: string,
+  14  |     address: string
+  15  |   ) {
+  16  |     await this.page.goto(
+  17  |       "openmrs/registrationapp/registerPatient.page?appId=referenceapplication.registrationapp.registerPatient"
+  18  |     );
+  19  |     await this.page.waitForLoadState("networkidle");
+  20  | 
+> 21  |     await this.page.waitForSelector(PatientLocators.givenNameInput, { state: "visible" });
+      |                     ^ Error: page.waitForSelector: Target page, context or browser has been closed
+  22  |     await this.page.fill(PatientLocators.givenNameInput, givenName);
+  23  |     await this.page.fill(PatientLocators.familyNameInput, familyName);
+  24  |     await this.page.click(PatientLocators.nextButton);
+  25  | 
+  26  |     await this.page.waitForSelector(PatientLocators.genderSelect, { state: "visible" });
+  27  |     await this.page.selectOption(PatientLocators.genderSelect, gender);
+  28  |     await this.page.click(PatientLocators.nextButton);
+  29  | 
+  30  |     await this.page.waitForSelector(PatientLocators.birthdateDayInput, { state: "visible" });
+  31  |     await this.page.fill(PatientLocators.birthdateDayInput, day);
+  32  |     await this.page.selectOption(PatientLocators.birthdateMonthSelect, month);
+  33  |     await this.page.fill(PatientLocators.birthdateYearInput, year);
+  34  |     await this.page.click(PatientLocators.nextButton);
+  35  | 
+  36  |     await this.page.fill(PatientLocators.address1Input, address);
+  37  |     await this.page.click(PatientLocators.nextButton); // to phone
+  38  |     await this.page.click(PatientLocators.nextButton); // to relatives
+  39  |     await this.page.click(PatientLocators.nextButton); // to confirm
+  40  | 
+  41  |     await this.page.click("input#submit");
+  42  |     await this.page.waitForURL(/patientId=/, { timeout: 50000 });
+  43  |   }
+  44  | 
+  45  |   async searchPatient(patientIdOrName: string) {
+  46  |     await this.page.goto("openmrs/coreapps/findpatient/findPatient.page?app=coreapps.findPatient");
+  47  |     await this.page.waitForLoadState("networkidle");
+  48  | 
+  49  |     await this.page.fill(PatientLocators.patientSearchInput, patientIdOrName);
+  50  |     await this.page.waitForTimeout(2000); // wait for search results
+  51  |     await this.page.click(PatientLocators.patientSearchResultsTableFirstRow);
+  52  |     await this.page.waitForLoadState("networkidle");
+  53  |   }
+  54  | 
+  55  |   async updatePatient(newGivenName: string) {
+  56  |     // Assuming we are already on the patient dashboard
+  57  |     await this.page.click(PatientLocators.editDemographicsLink);
+  58  |     await this.page.waitForLoadState("networkidle");
+  59  | 
+  60  |     await this.page.fill(PatientLocators.givenNameInput, newGivenName);
+  61  |     await this.page.click(PatientLocators.nextButton); // to gender
+  62  |     await this.page.click(PatientLocators.nextButton); // to birthdate
+  63  |     await this.page.click(PatientLocators.nextButton); // to confirm
+  64  | 
+  65  |     await this.page.click("#registration-submit");
+  66  |     await this.page.waitForLoadState("networkidle");
+  67  |   }
+  68  | 
+  69  |   async deletePatient(reason: string) {
+  70  |     // Assuming we are already on the patient dashboard
+  71  |     await this.page.click(PatientLocators.deletePatientLink);
+  72  |     await this.page.waitForSelector(PatientLocators.deleteReasonInput);
+  73  | 
+  74  |     await this.page.fill(PatientLocators.deleteReasonInput, reason);
+  75  |     await this.page.click(PatientLocators.confirmDeleteButton);
+  76  |     await this.page.waitForLoadState("networkidle");
+  77  |   }
+  78  | 
+  79  |   async validateRequiredFields() {
+  80  |     await this.page.goto(
+  81  |       "openmrs/registrationapp/registerPatient.page?appId=referenceapplication.registrationapp.registerPatient"
+  82  |     );
+  83  |     await this.page.waitForLoadState("networkidle");
+  84  | 
+  85  |     // Click next without filling anything
+  86  |     await this.page.click(PatientLocators.nextButton);
+  87  | 
+  88  |     // Expect error messages to appear
+  89  |     const errorCount = await this.page.locator(PatientLocators.fieldError).count();
+  90  |     expect(errorCount).toBeGreaterThan(0);
+  91  |   }
+  92  | 
+  93  |   async validateInvalidInput() {
+  94  |     await this.page.goto(
+  95  |       "openmrs/registrationapp/registerPatient.page?appId=referenceapplication.registrationapp.registerPatient"
+  96  |     );
+  97  |     await this.page.waitForLoadState("networkidle");
+  98  | 
+  99  |     await this.page.fill(PatientLocators.givenNameInput, "Test");
+  100 |     await this.page.fill(PatientLocators.familyNameInput, "User");
+  101 |     await this.page.click(PatientLocators.nextButton);
+  102 | 
+  103 |     await this.page.selectOption(PatientLocators.genderSelect, "M");
+  104 |     await this.page.click(PatientLocators.nextButton);
+  105 | 
+  106 |     // Enter letters in numeric date field
+  107 |     await this.page.fill(PatientLocators.birthdateDayInput, "abc");
+  108 |     await this.page.selectOption(PatientLocators.birthdateMonthSelect, "1");
+  109 |     await this.page.fill(PatientLocators.birthdateYearInput, "xyz");
+  110 |     await this.page.click(PatientLocators.nextButton);
+  111 | 
+  112 |     // Expect error messages on date fields
+  113 |     const errorCount = await this.page.locator(PatientLocators.fieldError).count();
+  114 |     expect(errorCount).toBeGreaterThan(0);
+  115 |   }
+  116 | }
+  117 | 
+```
