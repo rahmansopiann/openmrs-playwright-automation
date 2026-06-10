@@ -16,4 +16,23 @@ export const PatientLocators = {
   confirmDeleteButton: "div#delete-patient-creation-dialog button.confirm",
   fieldError: "span.field-error",
   dateRequiredField: "#demographics-birthdate",
+
+  // Duplicate Check
+  duplicateWarningModal: "#similarPatients",
+  duplicateWarningText: ".similar-patient-name",
+
+  // Merge Patient
+  mergePatientLink: "a[href*='mergePatients.page']",
+  patient1Input: "#patient1-text",
+  patient2Input: "#patient2-text",
+  continueMergeButton: "#confirm-button",
+  firstPatientToKeep: "#keep-first",
+  confirmMergeButton: "#confirm-merge-button",
+
+  // Advanced Search
+  advancedSearchButton: "#advanced-search-button",
+  genderFilterSelect: "#gender-filter",
+  ageFilterInput: "#age-filter",
+  locationFilterSelect: "#location-filter",
+  applyFilterButton: "#apply-filter-button",
 };
