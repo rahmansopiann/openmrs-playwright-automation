@@ -1,0 +1,497 @@
+# Instincts generated from https://github.com/rahmansopiann/openmrs-playwright-automation
+# Generated: 2026-06-25T06:43:50.773Z
+# Version: 2.0
+# NOTE: This file supplements (does not replace) any existing curated instincts.
+# High-confidence manually curated instincts should be preserved alongside these.
+
+---
+id: openmrs-playwright-automation-commit-length
+trigger: "when writing a commit message"
+confidence: 0.6
+domain: git
+source: repo-analysis
+source_repo: https://github.com/rahmansopiann/openmrs-playwright-automation
+---
+
+# Openmrs Playwright Automation Commit Length
+
+## Action
+
+Keep commit messages concise (~34 characters)
+
+## Evidence
+
+- Average commit message length: 34 chars
+- Based on 47 commits
+
+---
+id: openmrs-playwright-automation-naming-files
+trigger: "when creating a new file"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/rahmansopiann/openmrs-playwright-automation
+---
+
+# Openmrs Playwright Automation Naming Files
+
+## Action
+
+Use camelCase naming convention
+
+## Evidence
+
+- Analyzed file naming patterns in repository
+- Dominant pattern: camelCase
+
+---
+id: openmrs-playwright-automation-import-relative
+trigger: "when importing modules"
+confidence: 0.75
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/rahmansopiann/openmrs-playwright-automation
+---
+
+# Openmrs Playwright Automation Import Relative
+
+## Action
+
+Use relative imports for project files
+
+## Evidence
+
+- Import analysis shows relative import pattern
+- Example: import { x } from '../lib/x'
+
+---
+id: openmrs-playwright-automation-export-style
+trigger: "when exporting from a module"
+confidence: 0.7
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/rahmansopiann/openmrs-playwright-automation
+---
+
+# Openmrs Playwright Automation Export Style
+
+## Action
+
+Prefer mixed exports
+
+## Evidence
+
+- Export pattern analysis
+- Dominant style: mixed
+
+---
+id: openmrs-playwright-automation-test-separate
+trigger: "when writing tests"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/rahmansopiann/openmrs-playwright-automation
+---
+
+# Openmrs Playwright Automation Test Separate
+
+## Action
+
+Place tests in the tests/ or __tests__/ directory, mirroring src structure
+
+## Evidence
+
+- Separate test directory pattern detected
+- Tests live in dedicated test folders
+
+---
+id: openmrs-playwright-automation-workflow-feature-development
+trigger: "when implementing a new feature"
+confidence: 0.7
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/rahmansopiann/openmrs-playwright-automation
+---
+
+# Openmrs Playwright Automation Workflow Feature Development
+
+## Action
+
+Follow the feature-development workflow:
+1. Add feature implementation
+2. Add tests for feature
+3. Update documentation
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~4x per month
+- Files: /*, locators/*, pages/*
+
+---
+id: openmrs-playwright-automation-workflow-playwright-workflow-yml-iteration
+trigger: "when doing playwright workflow yml iteration"
+confidence: 0.9
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/rahmansopiann/openmrs-playwright-automation
+---
+
+# Openmrs Playwright Automation Workflow Playwright Workflow Yml Iteration
+
+## Action
+
+Follow the playwright-workflow-yml-iteration workflow:
+1. Edit .github/workflows/playwright.yml to add, remove, or modify steps (e.g., Allure deployment, notifications, environment variables).
+2. Optionally update related config files (e.g., package.json, playwright.config.ts) if needed for the workflow.
+3. Commit and push changes, often with small, incremental commits.
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~8x per month
+- Files: .github/workflows/playwright.yml, package.json, playwright.config.ts
+
+---
+id: openmrs-playwright-automation-workflow-add-new-test-feature-with-page-object-pattern
+trigger: "when doing add new test feature with page object pattern"
+confidence: 0.6
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/rahmansopiann/openmrs-playwright-automation
+---
+
+# Openmrs Playwright Automation Workflow Add New Test Feature With Page Object Pattern
+
+## Action
+
+Follow the add-new-test-feature-with-page-object-pattern workflow:
+1. Create or update locators in locators/*.locator.ts for new UI elements.
+2. Create or update page objects in pages/*.ts to encapsulate feature logic.
+3. Write new test specs in tests/*.spec.ts for the feature.
+4. Update configuration or documentation as needed (e.g., README.md, playwright.config.ts).
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~2x per month
+- Files: locators/*.locator.ts, pages/*.ts, tests/*.spec.ts
+
+---
+id: openmrs-playwright-automation-workflow-refactor-page-object-and-tests
+trigger: "when doing refactor page object and tests"
+confidence: 0.55
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/rahmansopiann/openmrs-playwright-automation
+---
+
+# Openmrs Playwright Automation Workflow Refactor Page Object And Tests
+
+## Action
+
+Follow the refactor-page-object-and-tests workflow:
+1. Move or refactor logic between pages/*.ts files.
+2. Update locators if necessary in locators/*.locator.ts.
+3. Update or refactor tests in tests/*.spec.ts to align with the new structure.
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~1x per month
+- Files: pages/*.ts, locators/*.locator.ts, tests/*.spec.ts
+
+---
+id: openmrs-playwright-automation-instinct-file-naming-camelCase
+trigger: "When creating a new file (except classes or config files)"
+confidence: 0.85
+domain: code-style
+source: repo-analysis
+source_repo: rahmansopiann/openmrs-playwright-automation
+---
+
+# Openmrs Playwright Automation Instinct File Naming CamelCase
+
+## Action
+
+Name the file using camelCase convention.
+
+## Evidence
+
+- Pattern in namingConventions.files: camelCase
+- Observed in locators/*.locator.ts, pages/*.ts
+
+---
+id: openmrs-playwright-automation-instinct-function-naming-camelCase
+trigger: "When defining a new function"
+confidence: 0.85
+domain: code-style
+source: repo-analysis
+source_repo: rahmansopiann/openmrs-playwright-automation
+---
+
+# Openmrs Playwright Automation Instinct Function Naming CamelCase
+
+## Action
+
+Name the function using camelCase convention.
+
+## Evidence
+
+- Pattern in namingConventions.functions: camelCase
+
+---
+id: openmrs-playwright-automation-instinct-class-naming-PascalCase
+trigger: "When defining a new class"
+confidence: 0.85
+domain: code-style
+source: repo-analysis
+source_repo: rahmansopiann/openmrs-playwright-automation
+---
+
+# Openmrs Playwright Automation Instinct Class Naming PascalCase
+
+## Action
+
+Name the class using PascalCase convention.
+
+## Evidence
+
+- Pattern in namingConventions.classes: PascalCase
+
+---
+id: openmrs-playwright-automation-instinct-constant-naming-SCREAMING_SNAKE_CASE
+trigger: "When defining a constant"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: rahmansopiann/openmrs-playwright-automation
+---
+
+# Openmrs Playwright Automation Instinct Constant Naming SCREAMING_SNAKE_CASE
+
+## Action
+
+Name the constant using SCREAMING_SNAKE_CASE convention.
+
+## Evidence
+
+- Pattern in namingConventions.constants: SCREAMING_SNAKE_CASE
+
+---
+id: openmrs-playwright-automation-instinct-import-style-relative
+trigger: "When importing modules within the project"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: rahmansopiann/openmrs-playwright-automation
+---
+
+# Openmrs Playwright Automation Instinct Import Style Relative
+
+## Action
+
+Use relative import paths.
+
+## Evidence
+
+- Pattern in importStyle: relative
+- Seen in pages/*.ts, tests/*.spec.ts
+
+---
+id: openmrs-playwright-automation-instinct-export-style-mixed
+trigger: "When exporting modules or functions"
+confidence: 0.7
+domain: code-style
+source: repo-analysis
+source_repo: rahmansopiann/openmrs-playwright-automation
+---
+
+# Openmrs Playwright Automation Instinct Export Style Mixed
+
+## Action
+
+Use either named or default exports as appropriate (mixed style).
+
+## Evidence
+
+- Pattern in exportStyle: mixed
+
+---
+id: openmrs-playwright-automation-instinct-test-location-separate
+trigger: "When adding new tests"
+confidence: 0.9
+domain: testing
+source: repo-analysis
+source_repo: rahmansopiann/openmrs-playwright-automation
+---
+
+# Openmrs Playwright Automation Instinct Test Location Separate
+
+## Action
+
+Place test files in the separate 'tests' directory.
+
+## Evidence
+
+- Pattern in architecture.folderStructure.testLocation: separate
+- tests/*.spec.ts
+
+---
+id: openmrs-playwright-automation-instinct-test-spec-naming
+trigger: "When creating a new test file"
+confidence: 0.9
+domain: testing
+source: repo-analysis
+source_repo: rahmansopiann/openmrs-playwright-automation
+---
+
+# Openmrs Playwright Automation Instinct Test Spec Naming
+
+## Action
+
+Name the file with a .spec.ts suffix.
+
+## Evidence
+
+- Pattern in tests/*.spec.ts
+
+---
+id: openmrs-playwright-automation-instinct-use-page-object-pattern
+trigger: "When writing tests for a new feature"
+confidence: 0.9
+domain: testing
+source: repo-analysis
+source_repo: rahmansopiann/openmrs-playwright-automation
+---
+
+# Openmrs Playwright Automation Instinct Use Page Object Pattern
+
+## Action
+
+Implement or update page objects in pages/*.ts and use them in test specs.
+
+## Evidence
+
+- Workflow: add-new-test-feature-with-page-object-pattern
+- Pattern in files: pages/*.ts, tests/*.spec.ts
+
+---
+id: openmrs-playwright-automation-instinct-locator-file-pattern
+trigger: "When adding locators for UI elements"
+confidence: 0.9
+domain: testing
+source: repo-analysis
+source_repo: rahmansopiann/openmrs-playwright-automation
+---
+
+# Openmrs Playwright Automation Instinct Locator File Pattern
+
+## Action
+
+Create or update locator files in locators/*.locator.ts.
+
+## Evidence
+
+- Workflow: add-new-test-feature-with-page-object-pattern
+- Pattern in files: locators/*.locator.ts
+
+---
+id: openmrs-playwright-automation-instinct-git-commit-format-freeform
+trigger: "When writing a commit message"
+confidence: 0.7
+domain: git
+source: repo-analysis
+source_repo: rahmansopiann/openmrs-playwright-automation
+---
+
+# Openmrs Playwright Automation Instinct Git Commit Format Freeform
+
+## Action
+
+Use a freeform commit message, optionally starting with a prefix (e.g., 'docs:', 'Refactor', 'Add').
+
+## Evidence
+
+- Pattern in commits: freeform, examples like 'docs: update test scenarios in README.md'
+
+---
+id: openmrs-playwright-automation-instinct-git-commit-length-short
+trigger: "When writing a commit message"
+confidence: 0.7
+domain: git
+source: repo-analysis
+source_repo: rahmansopiann/openmrs-playwright-automation
+---
+
+# Openmrs Playwright Automation Instinct Git Commit Length Short
+
+## Action
+
+Keep the commit message concise (average ~34 characters).
+
+## Evidence
+
+- Pattern in commits: averageLength 34
+- Examples: 'update yaml', 'add n8n result preparation...'
+
+---
+id: openmrs-playwright-automation-instinct-playwright-workflow-yml-iteration
+trigger: "When updating, fixing, or enhancing the Playwright GitHub Actions workflow"
+confidence: 0.95
+domain: workflow
+source: repo-analysis
+source_repo: rahmansopiann/openmrs-playwright-automation
+---
+
+# Openmrs Playwright Automation Instinct Playwright Workflow Yml Iteration
+
+## Action
+
+Edit .github/workflows/playwright.yml and optionally update related config files (package.json, playwright.config.ts), then commit and push changes.
+
+## Evidence
+
+- Workflow: playwright-workflow-yml-iteration
+- Files: .github/workflows/playwright.yml, package.json, playwright.config.ts
+
+---
+id: openmrs-playwright-automation-instinct-add-new-test-feature
+trigger: "When adding automated tests for a new feature or scenario"
+confidence: 0.9
+domain: workflow
+source: repo-analysis
+source_repo: rahmansopiann/openmrs-playwright-automation
+---
+
+# Openmrs Playwright Automation Instinct Add New Test Feature
+
+## Action
+
+Create or update locators, page objects, test specs, and update configuration or documentation as needed.
+
+## Evidence
+
+- Workflow: add-new-test-feature-with-page-object-pattern
+- Files: locators/*.locator.ts, pages/*.ts, tests/*.spec.ts, README.md, playwright.config.ts
+
+---
+id: openmrs-playwright-automation-instinct-refactor-page-object
+trigger: "When moving or reorganizing logic between page objects and ensuring tests reflect the changes"
+confidence: 0.85
+domain: workflow
+source: repo-analysis
+source_repo: rahmansopiann/openmrs-playwright-automation
+---
+
+# Openmrs Playwright Automation Instinct Refactor Page Object
+
+## Action
+
+Move or refactor logic between pages/*.ts files, update locators if necessary, and update or refactor tests in tests/*.spec.ts.
+
+## Evidence
+
+- Workflow: refactor-page-object-and-tests
+- Files: pages/*.ts, locators/*.locator.ts, tests/*.spec.ts
+
