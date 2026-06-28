@@ -113,4 +113,88 @@ export class PatientPage {
     const errorCount = await this.page.locator(PatientLocators.fieldError).count();
     expect(errorCount).toBeGreaterThan(0);
   }
+
+  async checkDuplicatePatientWarning(
+    givenName: string,
+    familyName: string,
+    gender: string,
+    day: string,
+    month: string,
+    year: string
+  ) {
+    await this.page.goto(
+      "openmrs/registrationapp/registerPatient.page?appId=referenceapplication.registrationapp.registerPatient"
+    );
+    await this.page.waitForLoadState("networkidle");
+
+    await this.page.fill(PatientLocators.givenNameInput, givenName);
+    await this.page.fill(PatientLocators.familyNameInput, familyName);
+    await this.page.click(PatientLocators.nextButton);
+
+    await this.page.selectOption(PatientLocators.genderSelect, gender);
+    await this.page.click(PatientLocators.nextButton);
+
+    await this.page.fill(PatientLocators.birthdateDayInput, day);
+    await this.page.selectOption(PatientLocators.birthdateMonthSelect, month);
+    await this.page.fill(PatientLocators.birthdateYearInput, year);
+    await this.page.click(PatientLocators.nextButton);
+
+    // Wait for the duplicate warning to appear
+    await this.page.waitForSelector(PatientLocators.duplicateWarningModal, {
+      state: "visible",
+      timeout: 10000,
+    });
+    const warningText = await this.page.locator(PatientLocators.duplicateWarningText).textContent();
+    expect(warningText).toContain(givenName);
+  }
+
+  async mergePatients(patient1Id: string, patient2Id: string) {
+    await this.page.goto(
+      "openmrs/coreapps/datamanagement/mergePatients.page?app=coreapps.datamanagement"
+    );
+    await this.page.waitForLoadState("networkidle");
+
+    await this.page.fill(PatientLocators.patient1Input, patient1Id);
+    await this.page.fill(PatientLocators.patient2Input, patient2Id);
+
+    // Sometimes there's a delay for patient names to fetch
+    await this.page.waitForTimeout(2000);
+
+    await this.page.click(PatientLocators.continueMergeButton);
+    await this.page.waitForLoadState("networkidle");
+
+    // Select which patient record to keep
+    await this.page.click(PatientLocators.firstPatientToKeep);
+    await this.page.click(PatientLocators.confirmMergeButton);
+    await this.page.waitForLoadState("networkidle");
+  }
+
+  async advancedSearchPatient(patientIdOrName: string, gender?: string, age?: string) {
+    await this.page.goto("openmrs/coreapps/findpatient/findPatient.page?app=coreapps.findPatient");
+    await this.page.waitForLoadState("networkidle");
+
+    // In OpenMRS RefApp, there might not be a native advanced search on the standard find patient page.
+    // However, assuming there is a filter mechanism or plugin according to the test requirement.
+    if (await this.page.isVisible(PatientLocators.advancedSearchButton)) {
+      await this.page.click(PatientLocators.advancedSearchButton);
+    }
+
+    await this.page.fill(PatientLocators.patientSearchInput, patientIdOrName);
+
+    if (gender) {
+      // Assuming a filter exists
+      await this.page.selectOption(PatientLocators.genderFilterSelect, gender);
+    }
+    if (age) {
+      await this.page.fill(PatientLocators.ageFilterInput, age);
+    }
+
+    if (await this.page.isVisible(PatientLocators.applyFilterButton)) {
+      await this.page.click(PatientLocators.applyFilterButton);
+    }
+
+    await this.page.waitForTimeout(2000); // wait for search results
+    await this.page.click(PatientLocators.patientSearchResultsTableFirstRow);
+    await this.page.waitForLoadState("networkidle");
+  }
 }

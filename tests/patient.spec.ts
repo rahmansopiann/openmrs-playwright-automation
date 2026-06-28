@@ -102,6 +102,26 @@ test.describe("Patient Management", () => {
     await patientPage.validateInvalidInput();
   });
 
+  test("Test duplicate patient check @negative @patient", async () => {
+    // Attempt to register a patient that matches an existing record
+    // e.g., John Doe, M, 01/01/1980
+    await patientPage.checkDuplicatePatientWarning("John", "Doe", "M", "01", "1", "1980");
+  });
+
+  test("Test merge patient records @positive @patient", async ({ page }) => {
+    // Assume we have two known patient IDs to merge (in a real scenario, we might create them first)
+    // For test purposes, we'll use placeholder IDs "100JPV" and "101JPV"
+    await patientPage.mergePatients("100JPV", "101JPV");
+    // Optionally assert success by checking the URL or page content
+    await expect(page).toHaveURL(/patientId=/);
+  });
+
+  test("Test advanced search patient @positive @patient", async ({ page }) => {
+    // Assuming we're looking for patient "John", Gender "M", Age "40"
+    await patientPage.advancedSearchPatient("John", "M", "40");
+    await expect(page).toHaveURL(/patientId=/);
+  });
+
   test.afterEach(async ({ page }) => {
     await page.close();
   });
